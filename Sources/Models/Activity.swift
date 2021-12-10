@@ -6,6 +6,7 @@
 //  Copyright © 2019 Stream.io Inc. All rights reserved.
 //
 
+import Foundation
 import GetStream
 
 /// A reaction with `ReactionExtraData` and `User`. See `ReactionExtraData`, `User`.
@@ -51,6 +52,10 @@ public final class Activity: EnrichedActivity<User, ActivityObject, Reaction>, T
         text = try container.decodeIfPresent(String.self, forKey: .text)
         attachment = try container.decodeIfPresent(ActivityAttachment.self, forKey: .attachments)
         try super.init(from: decoder)
+    }
+    
+    required init(actor: ActorType, verb: Verb, object: ObjectType, foreignId: String? = nil, eventID: String? = nil, time: Date? = nil, feedIds: FeedIds? = nil, originFeedId: FeedId? = nil) {
+        fatalError("init(actor:verb:object:foreignId:eventID:time:feedIds:originFeedId:) has not been implemented")
     }
     
     public override func encode(to encoder: Encoder) throws {

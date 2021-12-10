@@ -29,6 +29,14 @@ extension UIImage {
     public static let likeIcon = stream(named: "love_icon")
     /// A repost icon.
     public static let repostIcon = stream(named: "repost_icon")
+    /// An unselected like icon.
+    public static let registerInactiveIcon = stream(named: "register_gray_icon")
+    /// A selected like icon.
+    public static let registerIcon = stream(named: "register_icon")
+    /// An unselected like icon.
+    public static let zoomInactiveIcon = stream(named: "zoom_gray_icon")
+    /// A selected like icon.
+    public static let zoomIcon = stream(named: "zoom_icon")
     
     /// An image of an icon from Stream Activity Feed Components.
     public static func stream(named name: String) -> UIImage {

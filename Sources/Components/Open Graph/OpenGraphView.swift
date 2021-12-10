@@ -107,7 +107,12 @@ extension OpenGraphView {
     /// Updates the view with a given Open Graph data.
     public func update(with ogData: OGResponse) {
         titleLabel.text = ogData.title
-        descriptionLabel.text = ogData.description
+        if ogData.description?.count ?? 0 > 300{
+            let str = ogData.description?.prefix(300)
+            descriptionLabel.text = String(str ?? "")
+        }else{
+            descriptionLabel.text = ogData.description
+        }
         
         if let imageURLString = ogData.images?.first?.image {
             var imageURLString = imageURLString

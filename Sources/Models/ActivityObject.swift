@@ -7,6 +7,7 @@
 //
 
 import GetStream
+import UIKit
 
 /// An activity object protocol.
 public protocol ActivityObjectProtocol: Enrichable {
@@ -66,13 +67,14 @@ public enum ActivityObject: ActivityObjectProtocol {
         } else if let activity = try? container.decode(Activity.self) {
             self = .repost(activity)
         } else {
-            let safeUser = try container.decode(MissingReference<User>.self)
-            
-            if safeUser.decodingError == nil {
-                self = .following(safeUser.value)
-            } else {
-                self = .unknown
-            }
+//            let safeUser = try container.decode(MissingReference<User>.self)
+//            
+//            if safeUser.decodingError == nil {
+//                self = .following(safeUser.value)
+//            } else {
+//                self = .unknown
+//            }
+            self = .unknown
         }
     }
     

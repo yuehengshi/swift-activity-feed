@@ -80,27 +80,71 @@ open class DetailViewController<T: ActivityProtocol>: BaseFlatFeedViewController
     open override func viewDidLoad() {
         super.viewDidLoad()
         updateSectionsIndex()
-        
+        self.view.backgroundColor = .white
         if sections.contains(.comments) {
             reactionPaginator?.load(.limit(100), completion: commentsLoaded)
             
             if canAddComment {
-                if let user = User.current {
-                    user.loadAvatar { [weak self] in self?.setupCommentTextField(avatarImage: $0) }
-                } else {
-                    print("❌ The current user not found")
-                    setupCommentTextField(avatarImage: nil)
-                }
+                User.current?.loadAvatar { [weak self] in self?.setupCommentTextField(avatarImage: $0) }
             }
         }
-        
+
         reloadData()
         
         if isModal {
             setupNavigationBarForModallyPresented()
         }
+        NotificationCenter.default.addObserver(self, selector: #selector(eventAlert(_:)), name: Notification.Name("eventAlert"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(registrationAlert(_:)), name: Notification.Name("registrationAlert"), object: nil)
     }
-    
+    @objc func eventAlert(_ notification: NSNotification){
+        var alertController = UIAlertController()
+        if let dict = notification.userInfo as NSDictionary? {
+            if let eventID = dict["eventID"] as? String, let userID = dict["userID"] as? String{
+                let data:[String: String] = ["eventID": eventID,"userID": userID]
+                if registeredEventIDs.contains(eventID){
+                    alertController = UIAlertController(title: "Unregister Event", message: "Are you sure to unregister this event?", preferredStyle: .alert)
+                }else{
+                    alertController = UIAlertController(title: "Register Event", message: "Are you sure to register this event?", preferredStyle: .alert)
+                }
+                
+                let OKAction = UIAlertAction(title: "Yes", style: .default, handler: { alert -> Void in
+                    NotificationCenter.default.post(name: Notification.Name("registerEvent"), object: nil, userInfo: data)
+                })
+                let CancelAction = UIAlertAction(title: "No", style: .default, handler: { alert -> Void in
+                    //NotificationCenter.default.post(name: Notification.Name("registerEvent"), object: nil, userInfo: data)
+                })
+                alertController.addAction(OKAction)
+                alertController.addAction(CancelAction)
+                self.present(alertController, animated: true, completion: nil)
+            }
+        }
+    }
+    @objc func registrationAlert(_ notification: NSNotification){
+        var alertController = UIAlertController()
+        if let dict = notification.userInfo as NSDictionary? {
+            if let status = dict["status"] as? Bool, let isRegister = dict["isRegister"] as? Bool{
+                if status{
+                    //alertController = UIAlertController(title: "Congratulations!", message: "You have registered the event successfully!", preferredStyle: .alert)
+                    //self.dismiss(animated: true)
+                    if isRegister{
+                        alertController = UIAlertController(title: "Congratulations!", message: "You have registered the event successfully!", preferredStyle: .alert)
+                    }else{
+                        alertController = UIAlertController(title: "", message: "You have unregistered the event.", preferredStyle: .alert)
+                    }
+                    
+                }else{
+                    alertController = UIAlertController(title: "Sorry!", message: "Something wrong happened, please register again!", preferredStyle: .alert)
+                }
+                
+                let OKAction = UIAlertAction(title: "OK", style: .default, handler:{ alert -> Void in
+                    self.tableView.reloadData()
+                })
+                alertController.addAction(OKAction)
+                self.present(alertController, animated: true, completion: nil)
+            }
+        }
+    }
     private func updateSectionsIndex() {
         guard let activityPresenter = activityPresenter else {
             self.sectionsData = []
@@ -174,8 +218,13 @@ open class DetailViewController<T: ActivityProtocol>: BaseFlatFeedViewController
             tableView.refreshControl = refreshControl
             
             refreshControl.addValueChangedAction { [weak self] _ in
+                if let activityPresenter = self?.activityPresenter {
+                    self?.reactionPaginator = activityPresenter.reactionPaginator(activityId: activityPresenter.originalActivity.id,
+                                                                            reactionKind: .comment)
+                }
                 if let self = self, let reactionPaginator = self.reactionPaginator {
                     reactionPaginator.load(.limit(100), completion: self.commentsLoaded)
+                    
                 }
             }
         }
@@ -367,6 +416,9 @@ open class DetailViewController<T: ActivityProtocol>: BaseFlatFeedViewController
                     if let error = $0.error {
                         self?.showErrorAlert(error)
                     } else if let self = self{
+                        if let activityPresenter = self.activityPresenter {
+                            self.reactionPaginator = activityPresenter.reactionPaginator(activityId: activityPresenter.originalActivity.id,reactionKind: .comment)
+                        }
                         self.reactionPaginator?.load(.limit(100), completion: self.commentsLoaded)
                     }
                 }
@@ -471,6 +523,10 @@ open class DetailViewController<T: ActivityProtocol>: BaseFlatFeedViewController
         
         textToolBar.textView.isEditable = false
         
+        Client.shared.add(reactionTo: activityPresenter.activity.id,
+                          kindOf: .comment_n,
+                          targetsFeedIds: [FeedId(feedSlug: "notification", userId: activityPresenter.activity.actor.id)]) { result in /* ... */ }
+        
         activityPresenter.reactionPresenter.addComment(for: activityPresenter.activity,
                                                        parentReaction: parentReaction,
                                                        extraData: ReactionExtraData.comment(textToolBar.text),
@@ -482,6 +538,9 @@ open class DetailViewController<T: ActivityProtocol>: BaseFlatFeedViewController
                                                             if let error = $0.error {
                                                                 self.showErrorAlert(error)
                                                             } else {
+                                                                if let activityPresenter = self.activityPresenter {
+                                                                    self.reactionPaginator = activityPresenter.reactionPaginator(activityId: activityPresenter.originalActivity.id,reactionKind: .comment)
+                                                                }
                                                                 self.reactionPaginator?.load(.limit(100), completion: self.commentsLoaded)
                                                             }
                                                         }
@@ -500,6 +559,7 @@ extension DetailViewController {
         
         let closeButton = UIButton(type: .custom)
         closeButton.setImage(.closeIcon, for: .normal)
+        navigationItem.leftBarButtonItem?.tintColor = .white
         navigationItem.leftBarButtonItem = UIBarButtonItem(customView: closeButton)
         
         closeButton.addTap { [weak self] _ in

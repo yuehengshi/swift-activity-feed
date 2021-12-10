@@ -11,6 +11,12 @@ import GetStream
 import Reusable
 import SnapKit
 
+
+// Register Event
+var registeredEventIDs : [String] = []
+var pollList : [String: Any] = [:]
+//var pollList : [String: FeedEvent] = [:]
+
 /// A flat feed view controller.
 open class FlatFeedViewController<T: ActivityProtocol>: BaseFlatFeedViewController<T>, UITableViewDelegate
     where T.ActorType: UserProtocol & UserNameRepresentable & AvatarRepresentable,
@@ -28,8 +34,21 @@ open class FlatFeedViewController<T: ActivityProtocol>: BaseFlatFeedViewControll
     
     open override func viewDidLoad() {
         super.viewDidLoad()
+        NotificationCenter.default.addObserver(self, selector: #selector(receiveRegisteredEvents(_:)), name: Notification.Name("receiveRegisteredEvents"), object: nil)
+        NotificationCenter.default.post(name: Notification.Name("passRegisteredEvents"), object: nil, userInfo: nil)
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(receiveOwnPollData(_:)), name: Notification.Name("receiveOwnPollData"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(updateOwnPollData(_:)), name: Notification.Name("updateOwnPollData"), object: nil)
+        
+        
+        // sync the latest poll data for updating UI later
+        NotificationCenter.default.addObserver(self, selector: #selector(syncLatestPollData_feedProject(_:)), name: Notification.Name("syncLatestPollData_feedProject"), object: nil)
+        
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(reloadData(_:)), name: Notification.Name("reloadData"), object: nil)
+        
         tableView.delegate = self
-        reloadData()
+        //reloadData()
         
         bannerView.addTap { [weak self] in
             $0.hide()
@@ -43,8 +62,67 @@ open class FlatFeedViewController<T: ActivityProtocol>: BaseFlatFeedViewControll
         if let indexPathForSelectedRow = tableView.indexPathForSelectedRow {
             tableView.deselectRow(at: indexPathForSelectedRow, animated: animated)
         }
+ 
     }
     
+    @objc func reloadData(_ notification: NSNotification){
+        reloadData()
+    }
+    
+    @objc func receiveRegisteredEvents(_ notification: NSNotification){
+        if let dict = notification.userInfo as NSDictionary? {
+            if let IDs = dict["registeredEventIDs"] as? [String]{
+                registeredEventIDs = IDs
+                reloadData()
+            }
+        }
+    }
+    
+    @objc func receiveOwnPollData(_ notification: NSNotification){
+        if let dict = notification.userInfo as NSDictionary? {
+            if let pollData = dict["ownPollData"] as? [String: Any]{
+                pollList = pollData
+                reloadData()
+            }
+        }
+    }
+    
+    @objc func updateOwnPollData(_ notification: NSNotification){
+        if let dict = notification.userInfo as NSDictionary? {
+            if let eventID = dict["eventID"] as? String, let selectedPollIndex = dict["selectedPollIndex"] as? Int{
+                if pollList.keys.contains(eventID){
+                    var newData : [String: Any] = [:]
+                    if let oldData = pollList[eventID] as? [String: Any]{
+                        newData["ownHasSelectedPollOption"] = true
+                        newData["ownSelectedPollOption"] = selectedPollIndex
+                        
+                        if let pollOptions_ = oldData["pollOptions"] as? [String]{
+                            newData["pollOptions"] = pollOptions_
+                        }
+                        if let pollResults_ = oldData["pollResults"] as? [Int]{
+                            if pollResults_.count > selectedPollIndex{
+                                var arr = pollResults_
+                                arr[selectedPollIndex] += 1
+                                newData["pollResults"] = arr
+                            }else{
+                                
+                            }
+                        }
+                    }
+                    pollList[eventID] = newData
+                }
+                reloadData()
+            }
+        }
+    }
+    
+    @objc func syncLatestPollData_feedProject(_ notification: NSNotification){
+        if let dict = notification.userInfo as NSDictionary? {
+            if let pollData = dict["latestPollData"] as? [String: Any]{
+                pollList = pollData
+            }
+        }
+    }
     /// Returns the activity presenter by the table section.
     public func activityPresenter(in section: Int) -> ActivityPresenter<T>? {
         if let presenter = presenter, section < presenter.count {
@@ -60,7 +138,9 @@ open class FlatFeedViewController<T: ActivityProtocol>: BaseFlatFeedViewControll
     
     open override func dataLoaded(_ error: Error?) {
         bannerView.hide()
-        tabBarItem.badgeValue = nil
+//        tabBarItem.badgeValue = nil
+        NotificationCenter.default.post(name: .removeNewsFeedBadge, object: nil)
+        
         super.dataLoaded(error)
     }
     
@@ -116,10 +196,17 @@ open class FlatFeedViewController<T: ActivityProtocol>: BaseFlatFeedViewControll
         }
         
         if case .attachmentImages(let urls) = cellType {
-            showImageGallery(with: urls)
+            //showImageGallery(with: urls)
         } else if case .attachmentOpenGraphData(let ogData) = cellType {
             showOpenGraphData(with: ogData)
+            if let activityPresenter = activityPresenter(in: indexPath.section) {
+                let activity = activityPresenter.activity
+                let data:[String: Any] = ["eventID": activity.eventID,"schoolUid": activity.firebaseUserID,"schoolID": activity.firebaseSchoolID, "hostName": activity.actor.name]
+
+                NotificationCenter.default.post(name: Notification.Name("recordFeedUrlClick"), object: nil, userInfo: data)
+            }
         }
+        tableView.deselectRow(at: indexPath, animated: false)
     }
 }
 
@@ -137,15 +224,18 @@ extension FlatFeedViewController {
                 
                 if newCount > 0 {
                     text = self.subscriptionNewItemsTitle(with: newCount)
-                    self.tabBarItem.badgeValue = String(newCount)
+                    //self.tabBarItem.badgeValue = String(newCount)
+                    //NotificationCenter.default.post(name: .showNewsFeedBadge, object: nil)
+//                    UIApplication.shared.applicationIconBadgeNumber = newCount
+                    self.bannerView.show(text, in: self)
                 } else if deletedCount > 0 {
-                    text = self.subscriptionDeletedItemsTitle(with: deletedCount)
-                    self.tabBarItem.badgeValue = String(deletedCount)
+                    //text = self.subscriptionDeletedItemsTitle(with: deletedCount)
+                    //self.tabBarItem.badgeValue = String(deletedCount)
                 } else {
                     return
                 }
                 
-                self.bannerView.show(text, in: self)
+//                self.bannerView.show(text, in: self)
             }
         }
     }
@@ -157,11 +247,11 @@ extension FlatFeedViewController {
     
     /// Return a title of new activies for the banner view on updates.
     open func subscriptionNewItemsTitle(with count: Int) -> String {
-        return "You have \(count) new activit\(count == 1 ? "y" : "ies")"
+        return "You have \(count) new activities"
     }
     
     /// Return a title of removed activities for the banner view on updates.
     open func subscriptionDeletedItemsTitle(with count: Int) -> String {
-        return "You have \(count) deleted activit\(count == 1 ? "y" : "ies")"
+        return "You have \(count) deleted activities"
     }
 }

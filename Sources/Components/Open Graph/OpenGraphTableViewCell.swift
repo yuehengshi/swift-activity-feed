@@ -50,7 +50,6 @@ public final class OpenGraphTableViewCell: UITableViewCell, NibReusable {
         guard let url = url else {
             return
         }
-        
         ImagePipeline.shared.loadImage(with: url.imageRequest(in: previewImageView)) { [weak self] result in
             guard let self = self else {
                 return
@@ -74,16 +73,25 @@ extension OpenGraphTableViewCell {
     /// Updates the cell with a given Open Graph data.
     public func update(with ogData: OGResponse) {
         titleLabel.text = ogData.title
-        descriptionLabel.text = ogData.description
-        
+        if ogData.description?.count ?? 0 > 300{
+            let str = ogData.description?.prefix(300)
+            descriptionLabel.text = String(str ?? "")
+        }else{
+            descriptionLabel.text = ogData.description
+        }
+        print(ogData.title)
         if let imageURLString = ogData.images?.first?.image {
             var imageURLString = imageURLString
             
             if imageURLString.hasPrefix("//") {
                 imageURLString = "https:\(imageURLString)"
             }
-            
+            print(imageURLString)
             updatePreviewImage(with: URL(string: imageURLString))
+        }else{
+//            self.previewImageWidthConstraint.constant = 0
+//            self.previewImageView.isHidden = true
+           // updatePreviewImage(with: URL(string: "null"))
         }
     }
 }

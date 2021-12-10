@@ -38,16 +38,30 @@ extension UITableView {
             guard let cellType = presenter.cellType(at: indexPath.row) else {
                 return nil
             }
-            
+            //print(cellType)
             switch cellType {
             case .activity:
                 let cell = dequeueReusableCell(for: indexPath) as PostHeaderTableViewCell
+                if let urls = presenter.originalActivityAttachment?.attachmentImageURLs(){
+                    if urls.count > 0{
+                        cell.urls = urls
+                    }else{
+                        cell.urls.removeAll()
+                        cell.images.removeAll()
+                    }
+                }else{
+                    cell.urls.removeAll()
+                    cell.images.removeAll()
+                }
+                cell.activityID = presenter.originalActivity.id
+                cell.congigPhotoGallery()
                 cell.update(with: presenter.activity, originalActivity: presenter.originalActivity)
                 return cell
             case .attachmentImages(let urls):
                 let cell = dequeueReusableCell(for: indexPath) as PostAttachmentImagesTableViewCell
-                cell.stackView.loadImages(with: urls)
+                //cell.stackView.loadImages(with: urls)
                 return cell
+                //return nil
             case .attachmentOpenGraphData(let ogData):
                 let cell = dequeueReusableCell(for: indexPath) as OpenGraphTableViewCell
                 cell.update(with: ogData)

@@ -9,15 +9,23 @@
 import Foundation
 import GetStream
 import Nuke
+import UIKit
+
+fileprivate struct UserData: Codable {
+    let name: String?
+    let profileImage: URL?
+}
 
 /// An advanced Stream user with a name and avatar.
 public final class User: GetStream.User, UserNameRepresentable, AvatarRepresentable {
     private enum CodingKeys: String, CodingKey {
         case name
-        case avatarURL = "profileImage"
+        case avatarURL
+        case avatarUrl
     }
     
     public var name: String
+    public var avatarUrl: String
     
     public var avatarURL: URL? {
         didSet { avatarImage = nil }
@@ -28,13 +36,15 @@ public final class User: GetStream.User, UserNameRepresentable, AvatarRepresenta
     
     public var avatarImage: UIImage?
     
-    public init(name: String, id: String) {
+    public init(name: String, avatarUrl: String, id: String) {
         self.name = name
+        self.avatarUrl = avatarUrl
         super.init(id: id)
     }
     
     required init(id: String) {
         name = ""
+        self.avatarUrl = ""
         super.init(id: id)
     }
     
@@ -43,9 +53,17 @@ public final class User: GetStream.User, UserNameRepresentable, AvatarRepresenta
         let container = try dataContainer.nestedContainer(keyedBy: CodingKeys.self, forKey: .data)
         let name = try container.decodeIfPresent(String.self, forKey: .name)
         self.name = name ?? "NoName"
-        avatarURL = try container.decodeIfPresent(URL.self, forKey: .avatarURL)
+        let avatarUrl = try container.decodeIfPresent(String.self, forKey: .avatarUrl)
+        self.avatarUrl = avatarUrl ?? ""
+        if (avatarUrl != nil){
+            self.avatarURL = URL(string: avatarUrl!)
+        }else{
+            self.avatarURL = try container.decodeIfPresent(URL.self, forKey: .avatarURL)
+        }
         try super.init(from: decoder)
     }
+    
+ 
     
     override public func encode(to encoder: Encoder) throws {
         var dataContainer = encoder.container(keyedBy: DataCodingKeys.self)
@@ -77,7 +95,8 @@ extension User {
             if let response = try? $0.get() {
                 completion(response.results.first != nil, response.results.first, nil)
             } else {
-                completion(false, nil, $0.error)
+//                completion(false, nil, $0.error)
+                completion(false, nil, nil)
             }
         }
     }

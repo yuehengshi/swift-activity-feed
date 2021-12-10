@@ -110,6 +110,11 @@ open class BaseFlatFeedViewController<T: ActivityProtocol>: UIViewController, UI
     
     /// Updates the `PostHeaderTableViewCell` with an avatar from the activity.
     open func updateAvatar(in cell: PostHeaderTableViewCell, activity: T) {
+//        let avatarUrlStr = activity.actorAvatarUrl
+//        if (avatarUrlStr != nil){
+//            activity.actor.avatarURL = URL(string: activity.actorAvatarUrl!)
+//        }
+        
         cell.updateAvatar(with: activity.actor)
     }
     
@@ -134,5 +139,13 @@ open class BaseFlatFeedViewController<T: ActivityProtocol>: UIViewController, UI
                 }
             }
         }
+        
+
+            cell.updateEvent(presenter: activityPresenter, userTypeOf: T.ActorType.self) {
+                if let error = $0 {
+                    print("❌", error)
+                }
+            }
+     
     }
 }

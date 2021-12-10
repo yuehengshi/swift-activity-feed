@@ -46,6 +46,15 @@ open class ReactionPresenter: ReactionPresenterProtocol {
                           userTypeOf: userType) {
                             self.parse($0, for: activity, parentReaction, completion)
         }
+
+//        Client.shared.add(reactionTo: activity.id,
+//                          parentReactionId: parentReaction?.id,
+//                          kindOf: .comment,
+//                          extraData: extraData,
+//                          userTypeOf: userType,
+//                          targetsFeedIds: [FeedId(feedSlug: "notifications", userId: "886335")]) {
+//                            self.parse($0, for: activity, parentReaction, completion)
+//        }
     }
     
     private func parse<T: ActivityProtocol>(_ result: Result<T.ReactionType, ClientError>,

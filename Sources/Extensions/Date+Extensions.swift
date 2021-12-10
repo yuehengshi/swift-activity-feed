@@ -39,8 +39,9 @@ extension DateFormatter {
     /// A short date and time formatter from the date.
     public static let short: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        formatter.dateStyle = .short
+        formatter.dateFormat = "MMMM d, yyyy h:mm a"
+//        formatter.timeStyle = .short
+//        formatter.dateStyle = .short
         return formatter
     }()
     

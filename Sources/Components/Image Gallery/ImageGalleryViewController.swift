@@ -178,7 +178,7 @@ public final class ImageGalleryCollectionViewCell: UICollectionViewCell, Reusabl
                 self.imageView.image = .imageIcon
             }
             
-            completion(result.error)
+            //completion(result.error)
         }
     }
 }

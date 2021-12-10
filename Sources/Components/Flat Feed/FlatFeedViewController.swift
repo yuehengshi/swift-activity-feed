@@ -139,7 +139,7 @@ open class FlatFeedViewController<T: ActivityProtocol>: BaseFlatFeedViewControll
     open override func dataLoaded(_ error: Error?) {
         bannerView.hide()
 //        tabBarItem.badgeValue = nil
-        NotificationCenter.default.post(name: .removeNewsFeedBadge, object: nil)
+        NotificationCenter.default.post(name: Notification.Name("removeNewsFeedBadge"), object: nil)
         
         super.dataLoaded(error)
     }

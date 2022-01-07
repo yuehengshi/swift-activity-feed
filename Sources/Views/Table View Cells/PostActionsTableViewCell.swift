@@ -17,6 +17,8 @@ open class PostActionsTableViewCell: UITableViewCell, NibReusable {
     @IBOutlet public weak var likeButton: LikeButton!
     @IBOutlet public weak var eventRegisterButton: EventButton!
     
+    var meetingID = ""
+    
     open override func awakeFromNib() {
         super.awakeFromNib()
         reset()
@@ -124,9 +126,31 @@ extension PostActionsTableViewCell {
             }
             
             if registeredEventIDs.contains(presenter.activity.eventID!){
-                eventRegisterButton.setImage(zoomEvent ? .zoomIcon : .registerIcon, for: .normal)
+                var icon = UIImage()
+                if zoomEvent{
+                    if let status = zoomMeetingStatus[meetingID]{
+                        icon = status ? .zoomLiveIcon : .zoomIcon
+                    }else{
+                        icon = .zoomIcon
+                    }
+                }else{
+                    icon = .registerIcon
+                }
+                eventRegisterButton.setImage(icon, for: .normal)
+                //eventRegisterButton.setImage(zoomEvent ? (zoomMeetingStatus[meetingID]! ? .zoomLiveIcon : .zoomIcon) : .registerIcon, for: .normal)
             }else{
-                eventRegisterButton.setImage(zoomEvent ? .zoomInactiveIcon : .registerInactiveIcon, for: .normal)
+                var icon = UIImage()
+                if zoomEvent{
+                    if let status = zoomMeetingStatus[meetingID]{
+                        icon = status ? .zoomInactiveLiveIcon : .zoomInactiveIcon
+                    }else{
+                        icon = .zoomInactiveIcon
+                    }
+                }else{
+                    icon = .registerInactiveIcon
+                }
+                eventRegisterButton.setImage(icon, for: .normal)
+                //eventRegisterButton.setImage(zoomEvent ?  (zoomMeetingStatus[meetingID]! ? .zoomInactiveLiveIcon : .zoomInactiveIcon) : .registerInactiveIcon, for: .normal)
             }
         }else if presenter.activity.verb == .repost{
             if presenter.originalActivity.verb == .event_r || presenter.originalActivity.verb == .event{
@@ -168,6 +192,12 @@ extension PostActionsTableViewCell {
             let decoder = JSONDecoder()
             do {
                 let event = try decoder.decode(Event.self, from: jsonData)
+                if !event.meetingID.isEmpty{
+                    meetingID = event.meetingID
+                    let data:[String: String] = ["meetingID": event.meetingID]
+                    NotificationCenter.default.post(name: Notification.Name("addMeetingStatusObserver"), object: nil, userInfo: data)
+                }
+                
                 return !event.meetingID.isEmpty
             } catch {
                 print(error.localizedDescription)

@@ -15,6 +15,7 @@ import SnapKit
 // Register Event
 var registeredEventIDs : [String] = []
 var pollList : [String: Any] = [:]
+var zoomMeetingStatus : [String:Bool] = [:]
 //var pollList : [String: FeedEvent] = [:]
 
 /// A flat feed view controller.
@@ -35,6 +36,7 @@ open class FlatFeedViewController<T: ActivityProtocol>: BaseFlatFeedViewControll
     open override func viewDidLoad() {
         super.viewDidLoad()
         NotificationCenter.default.addObserver(self, selector: #selector(receiveRegisteredEvents(_:)), name: Notification.Name("receiveRegisteredEvents"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(receiveZoomMeetingStatus(_:)), name: Notification.Name("receiveZoomMeetingStatus"), object: nil)
         NotificationCenter.default.post(name: Notification.Name("passRegisteredEvents"), object: nil, userInfo: nil)
         
         NotificationCenter.default.addObserver(self, selector: #selector(receiveOwnPollData(_:)), name: Notification.Name("receiveOwnPollData"), object: nil)
@@ -67,6 +69,15 @@ open class FlatFeedViewController<T: ActivityProtocol>: BaseFlatFeedViewControll
     
     @objc func reloadData(_ notification: NSNotification){
         reloadData()
+    }
+    
+    @objc func receiveZoomMeetingStatus(_ notification: NSNotification){
+        if let dict = notification.userInfo as NSDictionary? {
+            if let data = dict as? [String: Bool]{
+                zoomMeetingStatus = data
+                reloadData()
+            }
+        }
     }
     
     @objc func receiveRegisteredEvents(_ notification: NSNotification){

@@ -167,6 +167,17 @@ open class PostHeaderTableViewCell: BaseTableViewCell , UIScrollViewDelegate{
         
     }
     
+    public func updateAvatarBorder(_ withBorder: Bool){
+        if withBorder{
+            avatarButton.layer.borderWidth = 2
+            avatarButton.layer.borderColor = UIColor.red.cgColor
+        }else{
+            avatarButton.layer.borderWidth = 0
+            avatarButton.layer.borderColor = UIColor.white.cgColor
+        }
+        
+    }
+    
     public func startActivityIndicator(){
         activityIndicator.isHidden = false
         activityIndicator.startAnimating()
@@ -554,6 +565,9 @@ extension PostHeaderTableViewCell {
         nameLabel.text = originalActivity.actor.name
         schoolName = originalActivity.actor.name
 //        print("load "+nameLabel.text!)
+        
+
+        
         if let textRepresentable = originalActivity as? TextRepresentable {
             if !((activity.eventType ?? "").isEmpty) && !([.virtual, .physical, .news, .poll].contains(activity.eventType)){
                 messageLabel.attributedText = formatAttributedEvent_UnsupportedEvent()
@@ -706,6 +720,8 @@ extension PostHeaderTableViewCell {
         }else{
             self.fosterwayIcon.isHidden = true
         }
+        
+    
     }
     
     @objc func openUserAllFeeds()
@@ -774,6 +790,10 @@ extension PostHeaderTableViewCell {
                                 str = str.italic("Register in link below")
                             }else{
                                 str = str.italic("Register by clicking Zoom button")
+//                                if let status = zoomMeetingStatus[event.meetingID]{
+//                                        updateAvatarBorder(status)
+//                                }
+                                
                             }
                         }
                         //str = event.registerRequired ? (event.meetingID.isEmpty ? str.italic("Register in link below") : str.italic("Register by clicking Zoom button")) : (str.italic(""))

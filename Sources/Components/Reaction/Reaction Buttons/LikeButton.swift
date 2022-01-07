@@ -120,7 +120,10 @@ open class EventButton: ReactionButton {
         T.ActorType: UserProtocol & UserNameRepresentable & AvatarRepresentable{
             
             if (activity.verb == .event_r || activity.verb == .event) && !activity.eventID!.isEmpty && !activity.firebaseUserID!.isEmpty{
+                var isZoomOngoing = false
                 var eventName = ""
+                var meetingID = ""
+                var meetingPassword = ""
                 if let textRepresentable = activity as? TextRepresentable {
                     if let jsonData = textRepresentable.text!.data(using: .utf8)
                     {
@@ -128,12 +131,19 @@ open class EventButton: ReactionButton {
                         do {
                             let event = try decoder.decode(EventDecode.self, from: jsonData)
                             eventName = event.title
+                            if !event.meetingID.isEmpty{
+                                if let status = zoomMeetingStatus[event.meetingID]{
+                                    isZoomOngoing = status
+                                }
+                            }
+                            meetingID = event.meetingID
+                            meetingPassword = event.meetingPassword
                         } catch {
                             print(error.localizedDescription)
-                        } 
+                        }
                     }
                 }
-                let data:[String: String] = ["eventID": activity.eventID!,"userID": activity.firebaseUserID!,"schoolID": activity.firebaseSchoolID!, "eventName": eventName, "hostName": activity.actor.name, "registerRequired": (activity.verb == .event_r ? "true" : "false")]
+                let data:[String: Any] = ["eventID": activity.eventID!,"userID": activity.firebaseUserID!,"schoolID": activity.firebaseSchoolID!, "eventName": eventName, "hostName": activity.actor.name, "registerRequired": (activity.verb == .event_r ? "true" : "false"), "isZoomOngoing": isZoomOngoing, "meetingID": meetingID, "meetingPassword": meetingPassword]
                 NotificationCenter.default.post(name: Notification.Name("eventAlert"), object: nil, userInfo: data)
                 /*if registeredEventIDs.contains(activity.eventID!){
                     self.setTitle("Unregistering...", for: .normal)
@@ -153,6 +163,8 @@ struct EventDecode: Codable {
     var address:String
     var website:String
     var registerRequired:Bool
+    var meetingID:String
+    var meetingPassword:String
 }
 
 

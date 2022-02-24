@@ -862,14 +862,17 @@ extension PostHeaderTableViewCell {
     }
     
     func convertTorontoTimeToLocalTime(torontoTime: String) -> String{
-        let dateFormatter = DateFormatter()
-         dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-         dateFormatter.timeZone = TimeZone(abbreviation: "EDT")
-         let localTime = dateFormatter.date(from: torontoTime)
-         dateFormatter.timeZone = TimeZone.current
-         let timeStamp = dateFormatter.string(from: localTime!)
-
-         return timeStamp
+        if !torontoTime.isEmpty{
+            let dateFormatter = DateFormatter()
+             dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+             dateFormatter.timeZone = TimeZone(abbreviation: "EDT")
+             let localTime = dateFormatter.date(from: torontoTime)
+             dateFormatter.timeZone = TimeZone.current
+             let timeStamp = dateFormatter.string(from: localTime!)
+            return timeStamp
+        }else{
+            return ""
+        }
     }
     
 

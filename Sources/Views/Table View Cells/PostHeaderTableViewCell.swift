@@ -95,6 +95,7 @@ open class PostHeaderTableViewCell: BaseTableViewCell , UIScrollViewDelegate{
             }
         }
     }
+    var addressDict : [NSTextCheckingKey: String]!
     
     open override func reset() {
         updateAvatar(with: nil)
@@ -506,7 +507,6 @@ open class PostHeaderTableViewCell: BaseTableViewCell , UIScrollViewDelegate{
                     }else{
                         label.isHidden = !ownHasSelectedPollOption
                     }
-                    
                 }
                 if let percentage = value(forKey: "pollResultOption"+String(i)+"Percentage") as? UILabel {
                     if isEnded{
@@ -776,7 +776,7 @@ extension PostHeaderTableViewCell {
 //                str = NSMutableAttributedString().bold(event.title + "\n\n").normal(event.description + "\n\n").mediumBold(converTime(timeStr: event.startTime) + (event.startTime.isEmpty ? "" :"\n")).mediumBold(converTime(timeStr: event.endTime) + (event.endTime.isEmpty ? "" :"\n\n")).normal(event.address + (event.address.isEmpty ? "" :"\n\n")).normal(event.website + (event.website.isEmpty ? "" :"\n\n")).italic(event.registerRequired ? "Register Below" : "Registration Not Required")
 //                str = NSMutableAttributedString().bold(event.title + "\n\n").normal(event.description + "\n\n").mediumBold(converTime(timeStr: event.startTime) + (event.startTime.isEmpty ? "" :"\n")).mediumBold(converTime(timeStr: event.endTime) + (event.endTime.isEmpty ? "" :"\n\n")).normal(event.address + (event.address.isEmpty ? "" :"\n\n")).normal(event.website + (event.website.isEmpty ? "" :"\n\n"))
                 
-                str = NSMutableAttributedString().bold(event.title + "\n\n").normal(event.description + "\n\n").mediumBold(converTime(timeStr: event.startTime) + (event.startTime.isEmpty ? "" :"\n")).mediumBold(converTime(timeStr: event.endTime) + (event.endTime.isEmpty ? "" :"\n\n")).normal(event.address + (event.address.isEmpty ? "" :"\n\n"))
+                str = NSMutableAttributedString().bold(event.title + "\n\n").normal(event.description + "\n\n").mediumBold(converTime(timeStr: event.startTime) + (event.startTime.isEmpty ? "" :"\n")).mediumBold(converTime(timeStr: event.endTime) + (event.endTime.isEmpty ? "" :"\n\n")).address(event.address + (event.address.isEmpty ? "" :"\n\n"), cell: self)
                 let currentTime = Date()
                 let dateFormatter = DateFormatter()
                 dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
@@ -862,20 +862,40 @@ extension PostHeaderTableViewCell {
     }
     
     func convertTorontoTimeToLocalTime(torontoTime: String) -> String{
-        if !torontoTime.isEmpty{
-            let dateFormatter = DateFormatter()
-             dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-             dateFormatter.timeZone = TimeZone(abbreviation: "EDT")
-             let localTime = dateFormatter.date(from: torontoTime)
-             dateFormatter.timeZone = TimeZone.current
-             let timeStamp = dateFormatter.string(from: localTime!)
-            return timeStamp
-        }else{
-            return ""
+        let dateFormatter = DateFormatter()
+         dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+         dateFormatter.timeZone = TimeZone(abbreviation: "EDT")
+         let localTime = dateFormatter.date(from: torontoTime)
+         dateFormatter.timeZone = TimeZone.current
+         let timeStamp = dateFormatter.string(from: localTime!)
+
+         return timeStamp
+    }
+    
+    @objc func openAddress() {
+        guard let addressDict = addressDict else { return }
+        var addressString = ""
+        if let street = addressDict[.street] {
+            addressString += street + ","
+        }
+        if let city = addressDict[.city] {
+            addressString += city + ","
+        }
+        if let state = addressDict[.state] {
+            addressString += state + ","
+        }
+        if let zip = addressDict[.zip] {
+            addressString += zip + ","
+        }
+        let geoCoder = CLGeocoder()
+        geoCoder.geocodeAddressString(String(addressString.dropLast())) { (placemarks, error) in
+            guard let placemarks = placemarks?.first else { return }
+            let location = placemarks.location?.coordinate ?? CLLocationCoordinate2D()
+            guard let url = URL(string:"http://maps.apple.com/?q=\(location.latitude),\(location.longitude)") else { return }
+            UIApplication.shared.open(url)
         }
     }
     
-
 }
 
 
@@ -929,6 +949,49 @@ extension NSMutableAttributedString {
         self.append(NSAttributedString(string: value, attributes:attributes))
         return self
     }
+    // check if it contains real address
+    // add underlying and black
+    // add link to open map in the app
+    func address(_ value: String, cell: PostHeaderTableViewCell) -> NSMutableAttributedString {
+        let addressDict = extractAddress(string: value)
+        if addressDict.isEmpty {
+            for view in cell.subviews where type(of: view) == UIButton.self {
+                view.removeFromSuperview()
+            }
+            return self.normal(value)
+        }else {
+            cell.addressDict = addressDict
+            let attributes:[NSAttributedString.Key : Any] = [
+                .font : normalFont,
+                .underlineStyle : NSUnderlineStyle.single.rawValue,
+            ]
+            self.append(NSAttributedString(string: value, attributes:attributes))
+            let button = UIButton()
+            button.setTitle("", for: .normal)
+            cell.addSubview(button)
+            button.addTarget(self, action: #selector(cell.openAddress), for: .touchUpInside)
+            button.translatesAutoresizingMaskIntoConstraints = false
+            button.leftAnchor.constraint(equalTo: cell.messageLabel.leftAnchor).isActive = true
+            button.rightAnchor.constraint(equalTo: cell.messageLabel.rightAnchor).isActive = true
+            button.heightAnchor.constraint(equalToConstant: 30).isActive = true
+            button.bottomAnchor.constraint(equalTo: cell.messageLabel.bottomAnchor, constant: -40).isActive = true
+            return self
+        }
+    }
+    private func extractAddress(string: String) -> [NSTextCheckingKey: String] {
+        let detector = try! NSDataDetector(types: NSTextCheckingResult.CheckingType.address.rawValue)
+        let matches = detector.matches(in: string, options: [], range: NSRange(location: 0, length: string.utf16.count))
+        for match in matches {
+          if match.resultType == .address, let components = match.addressComponents {
+            return components
+          } else {
+            print("no components found")
+          }
+        }
+        return [NSTextCheckingKey: String]()
+    }
+    
+
     /* Other styling methods */
     func orangeHighlight(_ value:String) -> NSMutableAttributedString {
 
@@ -1058,7 +1121,7 @@ open class EEZoomableImageView: UIImageView {
     }
 }
 
-public protocol ZoomingDelegate: class {
+public protocol ZoomingDelegate: AnyObject {
     func pinchZoomHandlerStartPinching()
     func pinchZoomHandlerEndPinching()
 }
